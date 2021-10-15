@@ -1,5 +1,7 @@
 {{- define "leader.pod" -}}
 
+serviceAccountName: licmgr-test
+
 {{- with .Values.imagePullSecrets }}
 imagePullSecrets:
   {{- toYaml . | nindent 8 }}

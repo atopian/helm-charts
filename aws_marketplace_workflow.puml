@@ -1,0 +1,72 @@
+@startuml
+skinparam backgroundColor #FFFFFF
+skinparam activity {
+  StartColor Orange
+  BarColor SaddleBrown
+  EndColor Silver
+  BackgroundColor LightGreen
+  BackgroundColor<< Begin >> Orange
+  
+}
+
+(*) --> "Chart Deployed"
+if "AWSMarketplaceSecret Option?" then
+--> [true] "Check and Use Secret, and verify AWS credentials"
+--> "Download and install latest CLI and/or Python SDK"
+--> "CRIBL_BEFORE_START_CMD_1 - shell script execution"
+
+
+
+else 
+  --> [false] Otherwise
+  if "Running in EKS as Marketplace Offering?" then
+
+--> [true] "Create and Use Service Account"
+--> "Download and install latest CLI and/or Python SDK"
+
+
+
+
+
+  else 
+     --> [false] "Fall back to 'vanilla' licensing"
+--> "CRIBL_BEFORE_START_CMD_1 - shell script execution"
+
+endif
+endif
+--> "CRIBL_BEFORE_START_CMD_1 - shell script execution"
+--> "call CheckoutLicense"
+if "Licensed?" then
+--> [true] "inject license into container"
+--> "process any other configuration directives"
+
+else
+--> [false] "default to free license"
+--> "process any other configuration directives"
+
+endif
+--> "Start LogStream"
+
+
+"Start LogStream" --> "Run Normally"
+"Start LogStream" --> "CRIBL_AFTER_START_CMD_1"
+--> "run a timed loop to call CheckoutLicense periodically - implementing a counter of unsuccessful tries"
+--> "Call CheckoutLicense"
+
+if "Licensed?" then
+--> [true] "happy path - nothing necessary"
+--> "Run Normally"
+
+else
+--> "[false] Check counter"
+if "Has unsuccessful counter reached threshold?" then
+
+--> [yes] "revert to free license"
+--> "Restart"
+else 
+--> [no] "fall back to loop"
+endif
+--> "Run Normally"
+
+endif
+@enduml

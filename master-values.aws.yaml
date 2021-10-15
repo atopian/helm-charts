@@ -1,0 +1,96 @@
+# Default values for logstream-master.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+#securityContext:
+  #runAsUser: 1020
+  #runAsGroup: 30
+
+
+nodeSelector:
+  topology.ebs.csi.aws.com/zone: us-west-2b
+
+env: 
+#  CRIBL_BEFORE_START_CMD_3: "if [ ! -f $CRIBL_VOLUME_DIR/jobs_imported ] ; then mkdir -p $CRIBL_VOLUME_DIR/groups/group1/local/cribl; cp /var/tmp/job-config/jobs.yml $CRIBL_VOLUME_DIR/groups/group1/local/cribl/jobs.yml ; touch $CRIBL_VOLUME_DIR/jobs_imported;fi "
+  CRIBL_BEFORE_START_CMD_2: apt update; apt install -y unzip uuid; curl -Ls "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "/tmp/awscliv2.zip"; cd /tmp;  unzip /tmp/awscliv2.zip; ./aws/install
+  CRIBL_BEFORE_START_CMD_3: bash /var/tmp/aws-lm/check-license.sh norestart
+  CRIBL_AFTER_START_CMD_2: while [ true ]; do sleep 60; bash /var/tmp/aws-lm/check-license.sh; done
+  JOB: "jobs.yaml"
+  SOMETHING: "somethinghere"
+  SCOPE_service: "logstream-leader"
+
+envValueFrom:
+- name: PODNAME
+  valueFrom: 
+    fieldRef:
+      fieldPath: metadata.name
+- name: NODENAME
+  valueFrom:
+    fieldRef:
+      fieldPath: spec.nodeName
+
+extraVolumeMounts:
+- name: testing
+  mountPath: /var/lib/testing
+  readOnly: false
+#- name: swl-test-volume
+  ##mountPath: /var/tmp/swl-test-volume
+  #existingClaim: swl-test-volume
+  #readOnly: false
+
+#extraSecretMounts:
+  #- name: swl-test-secret
+    #secretName: swl-test-secret
+    #mountPath: /var/tmp/test-secret
+    #subPath: item1
+    #readOnly: true
+
+extraConfigmapMounts:
+  - name: aws-lm
+    configMap: aws-lm
+    mountPath: /var/tmp/aws-lm
+    #readOnly: false
+  
+ 
+
+extraInitContainers:
+- name: testing
+  image: "alpine:latest"
+  command: ["/bin/ash", "-c"]
+  args: 
+    - echo "hello"
+
+
+config:
+  scName:
+  criblHome: /opt/cribl
+  rejectSelfSignedCerts: 0
+  healthPort: 9000
+  healthScheme: HTTP
+  token: HelloEverybody
+  adminPassword: k8sdemo
+  groups:
+  - group1
+  - group2
+
+service:
+  externalType: LoadBalancer
+  #externalLoadBalancerIP: 34.70.65.156
+  internalType: ClusterIP
+  ports:
+  - name: api
+    port: 9000
+    protocol: TCP
+    external: true
+  - name: leadercomm
+    port: 4200
+    protocol: TCP
+    external: false
+
+#ingress:
+  #enable: true
+  #annotations:
+    #kubernetes.io/ingress.class: alb
+    #alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
+    #alb.ingress.kubernetes.io/scheme: internet-facing
+
